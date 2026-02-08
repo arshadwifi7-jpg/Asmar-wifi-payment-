@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Success - ASMAR WIFI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        .success-box {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid #00ff88;
+            border-radius: 30px;
+            padding: 50px;
+            max-width: 600px;
+        }
+        .checkmark {
+            width: 100px;
+            height: 100px;
+            background: #00ff88;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin: 0 auto 30px;
+            color: #000;
+        }
+        h1 { color: #00ff88; margin-bottom: 20px; }
+        .voucher-box {
+            background: rgba(0,255,136,0.1);
+            border: 2px dashed #00ff88;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        .voucher-code {
+            font-size: 2.2rem;
+            font-weight: bold;
+            letter-spacing: 5px;
+            color: #d4af37;
+            margin: 15px 0;
+        }
+        .auto-login-btn {
+            display: inline-block;
+            padding: 20px 50px;
+            background: linear-gradient(90deg, #d4af37, #f4e5c2);
+            color: #000;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-top: 20px;
+        }
+        .countdown { color: rgba(255,255,255,0.6); margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="success-box">
+        <div class="checkmark">✓</div>
+        <h1>Payment Successful!</h1>
+        
+        <div class="voucher-box">
+            <p style="color: rgba(255,255,255,0.6);">Your Access Code</p>
+            <div class="voucher-code" id="voucherCode">••••••••••</div>
+            <p style="color: rgba(255,255,255,0.6);">Valid: <span id="validity" style="color: #d4af37;">...</span></p>
+        </div>
+        
+        <a href="#" class="auto-login-btn" id="autoLoginBtn">🚀 Auto Connect</a>
+        
+        <p class="countdown">Auto-connect in <span id="timer" style="color: #d4af37;">10</span>s</p>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
+
+        async function getVoucher() {
+            try {
+                let retries = 5;
+                let data = null;
+                
+                while (retries > 0) {
+                    const response = await fetch(`/api/get-voucher?session_id=${sessionId}`);
+                    if (response.ok) {
+                        data = await response.json();
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 2000));
+                    retries--;
+                }
+                
+                if (!data) throw new Error('Not found');
+                
+                document.getElementById('voucherCode').textContent = data.voucher;
+                document.getElementById('validity').textContent = 
+                    data.plan === 'monthly' ? '30 Days' : '24 Hours';
+                
+                // MIKROTIK IP YAHAN CHANGE KARO
+                const mikrotikIP = '192.168.88.1';
+                const loginURL = `http://${mikrotikIP}/login?username=${data.voucher}&password=${data.voucher}`;
+                document.getElementById('autoLoginBtn').href = loginURL;
+                
+                let seconds = 10;
+                setInterval(() => {
+                    seconds--;
+                    document.getElementById('timer').textContent = seconds;
+                    if (seconds <= 0) window.location.href = loginURL;
+                }, 1000);
+                
+            } catch (error) {
+                document.getElementById('voucherCode').textContent = 'LOADING...';
+                setTimeout(getVoucher, 3000);
+            }
+        }
+
+        getVoucher();
+    </script>
+</body>
+</html>
+
